@@ -1,0 +1,72 @@
+AllCops:
+  TargetRubyVersion: 2.6
+  NewCops: enable
+
+Style/StringLiterals:
+  Enabled: true
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  Enabled: true
+  EnforcedStyle: double_quotes
+
+Layout/LineLength:
+  Max: 120
+
+Naming/MethodParameterName:
+  Enabled: true
+  AllowedNames: [at, by, db, id, in, io, ip, of, on, os, pp, to, as, v, ex]
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+
+Lint/ConstantDefinitionInBlock:
+  Exclude:
+    - 'spec/**/*'
+
+Naming/PredicateName:
+  Exclude:
+    - lib/yarp/unknown_field.rb
+
+Layout/FirstHashElementIndentation:
+  EnforcedStyle: consistent
+
+Naming/AccessorMethodName:
+  Exclude:
+    - 'lib/yarp/responseable.rb'
+
+Metrics/ParameterLists:
+  Exclude:
+    - 'lib/yarp/registry.rb'
+
+Lint/RescueException:
+  Exclude:
+    - 'lib/yarp/server/driver.rb'
+
+
+Naming/VariableNumber:
+  AllowedIdentifiers:
+    - SSLv2
+    - SSLv3
+    - TLSv1
+    - TLSv1_1
+    - TLSv1_2
