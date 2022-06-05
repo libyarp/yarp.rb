@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.summary = "YARP for Ruby"
   spec.description = "YARP Client and Server implementations for Ruby"
   spec.homepage = "https://github.com/libyarp/yarp.rb"
-  spec.license = "LGPLv3"
+  spec.license = "LGPL-3.0-or-later"
   spec.required_ruby_version = ">= 2.6.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
