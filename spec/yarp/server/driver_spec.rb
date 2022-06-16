@@ -2,7 +2,7 @@
 
 RSpec.describe Yarp::Server::Driver do
   let(:conn) { double(:connection) }
-  subject { described_class.new(conn) }
+  subject { described_class.new(conn, { after: [], before: [] }.freeze) }
 
   it "initializes the request" do
     expect(subject.state).to eq :new
@@ -219,5 +219,184 @@ RSpec.describe Yarp::Server::Driver do
     expect(h.headers["foo"]).to eq "bar"
     expect(r.id).to eq 39
     expect(r.name).to eq "Who"
+  end
+
+  context "with global callbacks" do
+    let(:conn) { double(:connection) }
+    let(:calls) { [] }
+    subject do
+      described_class.new(conn, {
+        before: [proc { |_req, _hand| calls << :before }],
+        after: [proc { |_req, _hand|  calls << :after }]
+      }.freeze)
+    end
+
+    it "invokes all callbacks" do
+      discard_all_data(conn)
+      expect(subject).not_to receive(:handle_error)
+
+      req = Yarp::Proto::Request.new(0x102030, nil) { |*_args| }
+      buf = StringIO.new
+      req.encode(buf)
+
+      cls = register_struct do
+        yarp_meta id: 0x01, package: "test", name: "foo"
+
+        primitive :id, :int64, 0
+        primitive :name, :string, 1
+      end
+
+      register_dummy_method(0x102030, receives: cls)
+
+      stream(buf, into: subject)
+      inst = cls.new(id: 27, name: "Paul Appleseed")
+      buf = StringIO.new
+      Yarp::Proto::EncodedStruct.encode(buf, inst)
+      stream(buf, into: subject)
+
+      expect(calls).to eq %i[before after]
+    end
+  end
+
+  context "with failing global before callback" do
+    let(:conn) { double(:connection) }
+    let(:calls) { [] }
+    subject do
+      described_class.new(conn, {
+        before: [proc { |_req, _hand| raise "boom!" }],
+        after: [proc { |_req, _hand|  calls << :after }]
+      }.freeze)
+    end
+
+    it "stops call chain" do
+      discard_all_data(conn)
+      expect(subject).to receive(:handle_error)
+      expect(subject).not_to receive(:invoke_handler)
+
+      req = Yarp::Proto::Request.new(0x102030, nil) { |*_args| }
+      buf = StringIO.new
+      req.encode(buf)
+
+      cls = register_struct do
+        yarp_meta id: 0x01, package: "test", name: "foo"
+
+        primitive :id, :int64, 0
+        primitive :name, :string, 1
+      end
+
+      register_dummy_method(0x102030, receives: cls)
+
+      stream(buf, into: subject)
+      inst = cls.new(id: 27, name: "Paul Appleseed")
+      buf = StringIO.new
+      Yarp::Proto::EncodedStruct.encode(buf, inst)
+      stream(buf, into: subject)
+
+      expect(calls).to be_empty
+    end
+  end
+
+  context "with class callbacks" do
+    let(:conn) { double(:connection) }
+    let(:calls) { [] }
+    subject do
+      described_class.new(conn, {
+        before: [proc { |_req, _hand| calls << :before_global }],
+        after: [proc { |_req, _hand|  calls << :after_global }]
+      }.freeze)
+    end
+
+    it "invokes all callbacks" do
+      discard_all_data(conn)
+      expect(subject).not_to receive(:handle_error)
+
+      req = Yarp::Proto::Request.new(0x102030, nil) { |*_args| }
+      buf = StringIO.new
+      req.encode(buf)
+
+      cls = register_struct do
+        yarp_meta id: 0x01, package: "test", name: "foo"
+
+        primitive :id, :int64, 0
+        primitive :name, :string, 1
+      end
+
+      c = calls
+
+      setup = proc do
+        before_any { |_| c << :before_any }
+        after_any { |_| c << :after_any }
+        before(:dummy_caller) { c << :before }
+        after(:dummy_caller) { c << :after }
+      end
+
+      register_dummy_method(0x102030,
+                            receives: cls,
+                            class_setup: setup)
+
+      stream(buf, into: subject)
+      inst = cls.new(id: 27, name: "Paul Appleseed")
+      buf = StringIO.new
+      Yarp::Proto::EncodedStruct.encode(buf, inst)
+      stream(buf, into: subject)
+
+      expect(calls).to eq %i[before_global before_any before after after_any after_global]
+    end
+
+    it "invokes symbol-based callbacks" do
+      discard_all_data(conn)
+      expect(subject).not_to receive(:handle_error)
+
+      req = Yarp::Proto::Request.new(0x102030, nil) { |*_args| }
+      buf = StringIO.new
+      req.encode(buf)
+
+      cls = register_struct do
+        yarp_meta id: 0x01, package: "test", name: "foo"
+
+        primitive :id, :int64, 0
+        primitive :name, :string, 1
+      end
+
+      setup = proc do
+        before_any(:be_an)
+        after_any(:af_an)
+        before(:dummy_caller, :be_du)
+        after(:dummy_caller, :af_du)
+
+        def be_du
+          @calls ||= []
+          @calls << :before
+        end
+
+        def af_du
+          @calls ||= []
+          @calls << :after
+        end
+
+        def be_an(_meth)
+          @calls ||= []
+          @calls << :before_any
+        end
+
+        def af_an(_meth)
+          @calls ||= []
+          @calls << :after_any
+        end
+      end
+
+      register_dummy_method(0x102030,
+                            receives: cls,
+                            class_setup: setup)
+
+      stream(buf, into: subject)
+      inst = cls.new(id: 27, name: "Paul Appleseed")
+      buf = StringIO.new
+      Yarp::Proto::EncodedStruct.encode(buf, inst)
+      stream(buf, into: subject)
+
+      handler = subject.instance_variable_get(:@handler)
+      expect(handler.instance_variable_get(:@calls)).to eq %i[before_any before after after_any]
+    end
   end
 end

@@ -8,6 +8,7 @@ module Yarp
       base.attr_reader :request, :headers, :logger, :response_headers
       base.include Yarp::CommonResponses
       base.include Yarp::Responseable
+      base.extend Yarp::ServiceCallbacks
     end
   end
 end

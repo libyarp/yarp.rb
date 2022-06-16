@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Yarp
-  # Internal: Responseable implements basic mechanisms allowing clients to be
-  # composed and handle its incoming request and headers, along with a
+  # Internal: Responseable implements basic mechanisms allowing handlers to
+  # be composed and service its incoming request and headers, along with a
   # pre-registered logger and response headers.
   module Responseable
     # Internal: Initialises a new instance with a given Driver and Request.

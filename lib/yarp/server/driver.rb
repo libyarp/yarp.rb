@@ -30,7 +30,7 @@ module Yarp
         STATE_CLOSED => :closed
       }.freeze
 
-      def initialize(conn)
+      def initialize(conn, global_callbacks)
         @conn = conn
         @state = STATE_NEW
         @id = SecureRandom.uuid
@@ -39,6 +39,7 @@ module Yarp
         @logger ||= Yarp.logger.with_fields(request_id: @id)
         @request_parser = Yarp::Parser::RequestParser.new
         @buf = StringIO.new
+        @global_callbacks = global_callbacks
         logger.info("Transaction started")
       end
 
@@ -62,7 +63,6 @@ module Yarp
         @state = STATE_RECEIVED_HEADERS
         @headers_parsed_at = Time.stamp
         @request = v
-        # TODO: Middlwares
         determine_handler
       rescue Yarp::CorruptStreamError => e
         logger.error("Corrupt stream during request parsing", e)
@@ -147,7 +147,34 @@ module Yarp
           raise Yarp::Proto::Error.type_mismatch
         end
 
+        wrap_callbacks
+      end
+
+      def wrap_callbacks
+        begin
+          @global_callbacks[:before].each { |cb| cb.call(@request_body, @handler) }
+          @handler.invoke_callbacks(:before, @handler_meta[:name], @request_body)
+        rescue Exception => e
+          handle_error(e)
+          logger.warn "Interrupting transaction since a callback raised " \
+                      "an exception"
+          return
+        end
+
         invoke_handler
+
+        # Do not invoke "after" callbacks in case we had an error
+        return if @state == STATE_ERRORED
+
+        begin
+          @handler.invoke_callbacks(:after, @handler_meta[:name], @request_body)
+          @global_callbacks[:after].each { |cb| cb.call(@request_body, @handler) }
+        rescue Exception => e
+          logger.error "Caught an error during an #after callback. Please " \
+                       "do notice that this won't affect the overall " \
+                       "transaction status since the response payload has " \
+                       "already been transmitted.", e
+        end
       end
 
       def invoke_handler
