@@ -65,16 +65,18 @@ module Helpers
     @retained_data
   end
 
-  def register_dummy_method(id, receives: nil, returns: nil, streams: false, &block)
+  def register_dummy_method(id, receives: nil, returns: nil, streams: false, class_setup: nil, &block)
     klass = Class.new do
       include Yarp::Service
     end
-    block ||= -> {}
+    block ||= ->(_arg) {}
     klass.class_eval do
       define_method(:dummy_caller) do |*args|
         instance_exec(*args, &block)
       end
     end
+
+    klass.class_eval(&class_setup) unless class_setup.nil?
 
     allow(Yarp::Registry).to receive(:find_method).with(id).and_return({
       class: klass,

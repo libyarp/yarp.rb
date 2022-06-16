@@ -5,8 +5,13 @@ module Yarp
     # Internal: Executor abstracts EventMachine::Connection, and delegates
     # events to a Driver instance.
     class Executor < EM::Connection
+      def initialize(callbacks)
+        super()
+        @callbacks = callbacks
+      end
+
       def post_init
-        @driver = Driver.new(self)
+        @driver = Driver.new(self, @callbacks)
         start_tls(**::Yarp.configuration.tls_configuration) if ::Yarp.configuration.enable_tls
       end
 

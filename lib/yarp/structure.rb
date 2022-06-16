@@ -81,7 +81,7 @@ module Yarp
     # Public: Declares a new oneof field under a given index. A block must be
     # provided to configure the oneof field's fields.
     def self.oneof(index, &block)
-      raise LocalJumpError, "no block given" unless block_given?
+      raise LocalJumpError, "no block given" unless block
 
       descriptor = OneofDescriptor.new
       descriptor.instance_eval(&block)

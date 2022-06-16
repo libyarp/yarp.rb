@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Yarp
-  # Internal: CommonResponses implements common error utilities for clients;
+  # Internal: CommonResponses implements common error utilities for handlers;
   # methods defined here are present on Responseable.
   module CommonResponses
     # Public: Raises an Internal Error exception with an optional identifier and

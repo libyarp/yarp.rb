@@ -7,6 +7,33 @@ require_relative "server/configuration"
 module Yarp
   # Public: Server implements a Yarp server.
   class Server
+    attr_reader :callbacks
+
+    def initialize
+      @callbacks = {
+        before: [],
+        after: []
+      }
+    end
+
+    def before(callable = nil, &block)
+      obj = callable || block
+      if obj.arity != -1 && obj.arity != 2
+        raise ArgumentError, "global callbacks must accepts two arguments (request, handler)"
+      end
+
+      @callbacks[:before] << obj
+    end
+
+    def after(callable = nil, &block)
+      obj = callable || block
+      if obj.arity != -1 && obj.arity != 2
+        raise ArgumentError, "global callbacks must accepts two arguments (request, handler)"
+      end
+
+      @callbacks[:after] << obj
+    end
+
     # Public: starts the server runloop.
     def run
       config = Yarp.configuration
@@ -17,7 +44,8 @@ module Yarp
         EventMachine.start_server(
           config.bind_address,
           config.bind_port,
-          Executor
+          Executor,
+          @callbacks.freeze
         )
       end
     end

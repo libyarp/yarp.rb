@@ -160,11 +160,11 @@ module Yarp
       alias to_s inspect
 
       def respond_to_missing?(method_name, include_private = false)
-        KIND_TO_SYM.values.include?(method_name.to_s.gsub(/\?$/, "").to_sym) || super
+        KIND_TO_SYM.value?(method_name.to_s.gsub(/\?$/, "").to_sym) || super
       end
 
       def method_missing(name, *args, &block)
-        if name.end_with?("?") && KIND_TO_SYM.values.include?(name.to_s.gsub(/\?$/, "").to_sym)
+        if name.end_with?("?") && KIND_TO_SYM.value?(name.to_s.gsub(/\?$/, "").to_sym)
           return KIND_TO_SYM[kind] == name.to_s.gsub(/\?$/, "").to_sym
         end
 

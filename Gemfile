@@ -20,3 +20,5 @@ gem "leftovers", require: false
 gem "simplecov", require: false
 
 gem "timecop"
+
+gem "rubocop-performance", "~> 1.14", require: false

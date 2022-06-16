@@ -1,3 +1,5 @@
+require: rubocop-performance
+
 AllCops:
   TargetRubyVersion: 2.6
   NewCops: enable
@@ -70,3 +72,7 @@ Naming/VariableNumber:
     - TLSv1
     - TLSv1_1
     - TLSv1_2
+
+Lint/EmptyBlock:
+  Exclude:
+    - spec/yarp/server/driver_spec.rb
